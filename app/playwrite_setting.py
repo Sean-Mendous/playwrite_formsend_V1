@@ -10,7 +10,9 @@ from playwright.sync_api import sync_playwright
 def open_browser(url, p):
     browser = p.chromium.launch(headless=False)
     page = browser.new_page()
+    # ページが完全に読み込まれるまで待機
     page.goto(url, wait_until="load")
+    time.sleep(3)
     return browser, page
 
 def get_encoded_image(page):
