@@ -5,8 +5,11 @@
 ## 📁 プロジェクト構成
 
 ├── main.py            # 実行エントリーポイント
+
 ├── logic.py           # フォーム送信の主要ロジック
+
 ├── app/               # サブモジュール群（補助処理・共通関数など）
+
 └── requirements.txt   # 必要な Python ライブラリ一覧
 
 ## 🚀 使用方法
@@ -24,10 +27,15 @@ python main.py --client client_??? --start_row ??? --end_row ???
 引数の説明:
 
 --client
+
 対象のクライアント名（フォームテンプレートの指定）
+
 --start_row
+
 Google スプレッドシートの開始行（1-based）
+
 --end_row
+
 Google スプレッドシートの終了行（1-based）
 
 ## ✅ 実行結果
