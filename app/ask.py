@@ -15,7 +15,7 @@ def ask_for_feilds(elements, sender_info, sentence, prompt_paths):
 
     try:
         logger.info(f'>ask for select index')
-        elements_json = json.dumps(elements)
+        elements_json = json.dumps(elements, indent=4, ensure_ascii=False)
         selected_index = ask_for_select_feilds(elements_json, selected_fields_prompt, task_purpose)
         if not selected_index:
             raise RuntimeError(f'Could not get select index')
@@ -37,7 +37,7 @@ def ask_for_feilds(elements, sender_info, sentence, prompt_paths):
 
     try:
         logger.info(f'>ask for basic feilds')
-        selected_fields_json = json.dumps(selected_fields_list)
+        selected_fields_json = json.dumps(selected_fields_list, indent=4, ensure_ascii=False)
         final_feilds = ask_for_basic_feilds(selected_fields_json, sender_info, sentence, basic_fields_prompt, task_purpose)
         if not final_feilds:
             raise RuntimeError(f'Could not get final fields')
@@ -57,15 +57,14 @@ def ask_for_feilds(elements, sender_info, sentence, prompt_paths):
 def ask_for_basic_feilds(elements, sender_info, sentence, prompt, task_purpose):
     overall_prompt = f"""
 {task_purpose}
----
 {prompt}
----
+
 ## 個人情報
 {sender_info}
----
+
 ## 本件
 {sentence}
----
+
 ## 要素情報
 {elements}
 """
@@ -85,9 +84,8 @@ def ask_for_basic_feilds(elements, sender_info, sentence, prompt, task_purpose):
 def ask_for_select_feilds(feilds, prompt, task_purpose):
     overall_prompt = f"""
 {task_purpose}
----
 {prompt}
----
+
 ### フィールド
 {feilds}
 """
@@ -109,13 +107,14 @@ def ask_for_confirmation(elements, prompt_paths):
     task_purpose = open_md_file(prompt_paths["task_purpose"])
     confirm_prompt = open_md_file(prompt_paths["confirm"])
 
+    elements_json = json.dumps(elements, indent=4, ensure_ascii=False)
+
     overall_prompt = f"""
 {task_purpose}
----
 {confirm_prompt}
----
+
 ## 要素情報
-{elements}
+{elements_json}
 """
 
     try:
