@@ -49,10 +49,10 @@ logger.info(f"\n\nstart_row: {start_row}\nend_row: {end_row}\nsend: {send}\n")
 logger.info("0500: Running system")
 try:
     from app.logic import run_flow
-    run_flow(start_row, end_row, spreadsheet, sender_info, screenshot_path, send)
+    run_flow(start_row, end_row, spreadsheet, sender_info)
     logger.info(f"0600: 🟢 success for @{args.client}")
 except Exception as e:
-    logger.critical(f"🔴 error occurred while running system: {e}")
+    logger.critical(f"🔴 #{start_row} error >  {e}")
     traceback.print_exc()
     sys.exit(2)
 
@@ -61,9 +61,7 @@ logger.info("0700: 🍺🍺 main execution completed 🍺🍺")
 """
 python main.py --client client_test --start_row 9 --end_row 13
 
-python main.py --client client_samurai --start_row 3 --end_row 100
-
-python main.py --client client_samurai --start_row 71 --end_row 201
+python main.py --client client_samurai --start_row 201 --end_row 301
 """
 
 
