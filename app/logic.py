@@ -19,30 +19,29 @@ prompt_paths = {
     "progress": "prompt/progress.md",
 }
 
-def run_flow(start_row, end_row, spreadsheet, sender_info, prompt_paths=prompt_paths, send=False):
+def run_flow(start_row, end_row, spreadsheet, sender_info):
     sheet_id = spreadsheet["sheet_id"]
     sheet = spreadsheet["sheet"]
     column_map = spreadsheet["column_map"]
-    headder = column_map["headder"]
     credentials_path = spreadsheet["credentials_path"]
 
     try:
         sheet = certification_google_spreadsheet(sheet_id, sheet, credentials_path)
         if sheet:
-            logger.info(f'🟢')
+            logger.info(f'🟢 Successfully to get google certification')
         else:
-            raise RuntimeError(f'🔴')
+            raise RuntimeError(f'🔴 failed to get google certification')
     except Exception as e:
-        raise RuntimeError(f'🔴') from e
+        raise RuntimeError(f'🔴 failed to get google certification: {e}') from e
 
     try:
         multi_data = input_google_spreadsheet_multi(sheet, column_map, start_row, end_row)
         if multi_data:
-            logger.info(f'🟢')
+            logger.info(f'🟢 Successfully to get multi data')
         else:
-            raise RuntimeError(f'🔴')
+            raise RuntimeError(f'🔴 failed to get multi data')
     except Exception as e:
-        raise RuntimeError(f'🔴') from e
+        raise RuntimeError(f'🔴 failed to get multi data: {e}') from e
 
     row = start_row
     error_count = 0
@@ -57,11 +56,11 @@ def run_flow(start_row, end_row, spreadsheet, sender_info, prompt_paths=prompt_p
                 output_status["system_status"] = system_status
                 temp_status = output_google_spreadsheet(sheet, column_map, row, output_status)
                 if temp_status == True:
-                    logger.info(f'🟢')
+                    logger.info(f'🟢 Successfully to output google spreadsheet')
                 else:
-                    raise RuntimeError(f'🔴')
+                    raise RuntimeError(f'🔴 failed to output google spreadsheet')
             except Exception as e:
-                raise RuntimeError(f'🔴') from e
+                raise RuntimeError(f'🔴 failed to output google spreadsheet: {e}') from e
             row += 1
 
         logger.info(f"==starting for #{row}===")
@@ -72,17 +71,17 @@ def run_flow(start_row, end_row, spreadsheet, sender_info, prompt_paths=prompt_p
         data_status = data["system_status"]
 
         if not data_url:
-            logger.warning(f"🟡")
+            logger.warning(f"🟡 No URL")
             row += 1
             continue
             
         if not data_sentence:
-            logger.warning(f"🟡")
+            logger.warning(f"🟡 No sentence")
             row += 1
             continue
 
         if data_status == 'completed':
-            logger.warning(f"🟡")
+            logger.warning(f"🟡 Already completed")
             row += 1
             continue
 
@@ -91,12 +90,11 @@ def run_flow(start_row, end_row, spreadsheet, sender_info, prompt_paths=prompt_p
                 data_url,
                 data_sentence,
                 sender_info,
-                send=send
             )
         except Exception as e:
             error_count += 1
             error_message = f'{e}'
-            logger.error(f'{error_message}')
+            logger.error(f'🔴 {error_message}')
             continue
 
         try:
@@ -104,11 +102,11 @@ def run_flow(start_row, end_row, spreadsheet, sender_info, prompt_paths=prompt_p
             output_status["system_status"] = system_status
             temp_status = output_google_spreadsheet(sheet, column_map, row, output_status)
             if temp_status == True:
-                logger.info(f'🟢')
+                logger.info(f'🟢 Successfully to output google spreadsheet')
             else:
-                raise RuntimeError(f'🔴')
+                raise RuntimeError(f'🔴 failed to output google spreadsheet')
         except Exception as e:
-            raise RuntimeError(f'🔴') from e
+            raise RuntimeError(f'🔴 failed to output google spreadsheet: {e}') from e
 
         logger.info(f"==ending for #{row}===")
         error_count = 0
@@ -128,18 +126,22 @@ def basic_flow(
             logger.info(f"🔄 1. Get form elements")
             try:
                 elements, browser, page = get_form_elements(url, p)
+                if not elements:
+                    raise RuntimeError(f'1. get form elements')
                 logger.info(f'🟢Successfully got elements from url\n')
             except Exception as e:
-                raise RuntimeError(f'🔴 {e}') from e
+                raise RuntimeError(f'1. get form elements: {e}') from e
+            
+            logger.info(f'elements:\n{json.dumps(elements, indent=4, ensure_ascii=False)}')
             
             logger.info(f"🔄 2. Ask for fields")
             try:
                 fields = ask_for_feilds(elements, sender_info, sentence, prompt_paths)
                 if not fields:
-                    raise RuntimeError(f'🔴 Did not get fields')
+                    raise RuntimeError(f'2. ask for fields')
                 logger.info(f'🟢 Successfully got fields\n')
             except Exception as e:
-                raise RuntimeError(f'🔴 {e}') from e
+                raise RuntimeError(f'2. ask for fields: {e}') from e
             
             logger.info(f"🔄 3. Control browser")
             try:
@@ -147,36 +149,14 @@ def basic_flow(
                 status = control_browser(page, fields, form_check=True)
                 if status == True:
                     logger.info(f'🟢 Successfully controlled browser\n')
+                else:
+                    raise RuntimeError(f'3. control browser')
             except Exception as e:
-                raise RuntimeError(f'🔴 {e}') from e
+                raise RuntimeError(f'3. control browser: {e}') from e
             
             for i in range(1, 4):
-                logger.info(f"🔄 4.1 Get confirm elements ({i})")
-                try:
-                    elements = get_confirm_elements(page)
-                    if elements:
-                        logger.info(f'🟢 Successfully got elements ({i})\n')
-                except Exception as e:
-                    raise RuntimeError(f'🔴 {e}') from e
-                
-                logger.info(f"🔄 4.2 Ask for confirmation ({i})")
-                try:
-                    feild = ask_for_confirmation(elements, prompt_paths)
-                    if feild:
-                        logger.info(f'🟢 Successfully asked for confirmation ({i})\n')
-                except Exception as e:
-                    raise RuntimeError(f'🔴 {e}') from e
-            
-                logger.info(f"🔄 4.3 Control browser ({i})")
-                try:
-                    status = None
-                    status = control_browser(page, feild, form_check=False)
-                    if status == True:
-                        logger.info(f'🟢 Successfully controlled browser ({i})\n')
-                except Exception as e:
-                    raise RuntimeError(f'🔴 {e}') from e
-
-                logger.info(f"🔄 4.4 Check the progress ({i})")
+                logger.info(f"🔄 4.1 Check the progress ({i})")
+                time.sleep(5)
                 try:        
                     status = None
                     status = ask_for_progress(page, prompt_paths)
@@ -184,18 +164,50 @@ def basic_flow(
                         logger.info(f'🟢 Successfully checked the progress : True ({i})\n')
                     elif status == False:
                         logger.info(f'🟢 Successfully checked the progress : False ({i})\n')
+                    else:
+                        raise RuntimeError(f'4.1 check the progress ({i})')
                 except Exception as e:
-                    raise RuntimeError(f'🔴 {e}') from e
-                    
+                    raise RuntimeError(f'4.1 check the progress ({i}): {e}') from e
+                
                 if status == True:
                     break
-                if status == False:
-                    time.sleep(3)
-                    continue
+                if i == 3:
+                    break
+                
+                logger.info(f"🔄 4.2 Get confirm elements ({i})")
+                try:
+                    elements = get_confirm_elements(page)
+                    if not elements:
+                        raise RuntimeError(f'4.2 get confirm elements ({i})')
+                    logger.info(f'🟢 Successfully got elements ({i})\n')
+                except Exception as e:
+                    raise RuntimeError(f'4.2 get confirm elements ({i}): {e}') from e
+                
+                logger.info(f"🔄 4.3 Ask for confirmation ({i})")
+                try:
+                    feild = ask_for_confirmation(elements, prompt_paths)
+                    if not feild:
+                        raise RuntimeError(f'4.3 ask for confirmation ({i})')
+                    logger.info(f'🟢 Successfully asked for confirmation ({i})\n')
+                except Exception as e:
+                    raise RuntimeError(f'4.3 ask for confirmation ({i}): {e}') from e
+            
+                logger.info(f"🔄 4.4 Control browser ({i})")
+                try:
+                    status = None
+                    status = control_browser(page, feild, form_check=False)
+                    if status == True:
+                        logger.info(f'🟢 Successfully controlled browser ({i})\n')
+                    else:
+                        raise RuntimeError(f'4.4 control browser ({i})')
+                except Exception as e:
+                    raise RuntimeError(f'4.4 control browser ({i}): {e}') from e
+                
+                logger.info(f'🟡 Continuing to check the progress ({i} → {i+1})\n')
 
         if status == False:
             logger.info(f"💣 99. Failed 💣")
-            raise RuntimeError(f'Could not send form')
+            raise RuntimeError(f'99. Could not send form')
         elif status == True:
             logger.info(f"🦄 99. Completed 🦄")
             return True
@@ -235,7 +247,7 @@ https://samurai-style.tokyo/
  """
 
     basic_flow(
-        data_url = "https://www.palette-age.jp/inquiry_list/",
+        data_url = input("Enter the URL: "),
         data_sentence = sentence,
         sender_info = sender_info,
     )
