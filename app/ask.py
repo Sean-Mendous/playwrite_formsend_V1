@@ -162,16 +162,32 @@ def ask_for_progress(page, prompt_paths):
     except Exception as e:
         raise RuntimeError(f'{e}') from e
 
-    if "true" in responce:
-        logger.info(f'>Got "true"')
-        logger.info(f'>🏠 Return to logic.py')
-        return True
-    elif "false" in responce:
-        logger.info(f'>Got "false"')
-        logger.info(f'>🏠 Return to logic.py')
-        return False
+    try:
+        status, message = seperate_responce_for_progress(responce)
+        if not status:
+            raise RuntimeError(f'Could not seperate responce')
+        logger.info(f'>Seperated responce')
+    except Exception as e:
+        raise RuntimeError(f'{e}') from e
+
+    logger.info(f'>🏠 Return to logic.py')
+    return status, message
+
+def seperate_responce_for_progress(responce):
+    responce_dict = json.loads(responce)
+    status = responce_dict["system"]
+    if "true" in status:
+        logger.info(f' - Got "true" for status')
+        status_bool = True
+    elif "false" in status:
+        logger.info(f' - Got "false" for status')
+        status_bool = False
     else:
         raise RuntimeError(f'Could not convert responce to boolean')
+    
+    message = responce_dict["message"]
+
+    return status_bool, message
 
 #overall
 def open_md_file(path):

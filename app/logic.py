@@ -158,12 +158,12 @@ def basic_flow(
                 logger.info(f"🔄 4.1 Check the progress ({i})")
                 time.sleep(5)
                 try:        
-                    status = None
-                    status = ask_for_progress(page, prompt_paths)
+                    status, message = None
+                    status, message = ask_for_progress(page, prompt_paths)
                     if status == True:
                         logger.info(f'🟢 Successfully checked the progress : True ({i})\n')
                     elif status == False:
-                        logger.info(f'🟢 Successfully checked the progress : False ({i})\n')
+                        logger.info(f'🟢 Successfully checked the progress : False ({i}) : {message}\n')
                     else:
                         raise RuntimeError(f'4.1 check the progress ({i})')
                 except Exception as e:
@@ -207,7 +207,7 @@ def basic_flow(
 
         if status == False:
             logger.info(f"💣 99. Failed 💣")
-            raise RuntimeError(f'99. Could not send form')
+            raise RuntimeError(f'99. Could not send form : {message}')
         elif status == True:
             logger.info(f"🦄 99. Completed 🦄")
             return True
