@@ -63,6 +63,7 @@ def run_flow(start_row, end_row, spreadsheet, sender_info):
                 raise RuntimeError(f'🔴 failed to output google spreadsheet: {e}') from e
             row += 1
 
+        time.sleep(3)
         system_status = None
         error_message = None
         logger.info(f"==starting for #{row}===")
@@ -168,14 +169,15 @@ def basic_flow(
                 logger.info(f"🔄 4.1 Check the progress ({i})")
                 time.sleep(5)
                 try:        
-                    status, message = None
+                    status = None
+                    message = None
                     status, message = ask_for_progress(page, prompt_paths)
                     if status == True:
-                        logger.info(f'🟢 Successfully checked the progress : True ({i})\n')
+                        logger.info(f'🟢 Successfully checked the progress : True ({i}) : {message}\n')
                     elif status == False:
                         logger.info(f'🟢 Successfully checked the progress : False ({i}) : {message}\n')
                     else:
-                        raise RuntimeError(f'4.1 check the progress ({i})')
+                        raise RuntimeError(f'4.1 check the progress ({i}) : {message}')
                 except Exception as e:
                     raise RuntimeError(f'4.1 check the progress ({i}): {e}') from e
                 

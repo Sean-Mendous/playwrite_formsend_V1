@@ -161,6 +161,8 @@ def ask_for_progress(page, prompt_paths):
         logger.info(f'>Got responce')
     except Exception as e:
         raise RuntimeError(f'{e}') from e
+    
+    print(responce)
 
     try:
         status, message = seperate_responce_for_progress(responce)
@@ -175,7 +177,8 @@ def ask_for_progress(page, prompt_paths):
 
 def seperate_responce_for_progress(responce):
     responce_dict = json.loads(responce)
-    status = responce_dict["system"]
+
+    status = responce_dict["status"]
     if "true" in status:
         logger.info(f' - Got "true" for status')
         status_bool = True
