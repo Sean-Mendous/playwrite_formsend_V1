@@ -45,7 +45,6 @@ def run_flow(start_row, end_row, spreadsheet, sender_info):
 
     row = start_row
     error_count = 0
-    system_status = None
 
     for data in multi_data:
         if error_count:
@@ -53,7 +52,8 @@ def run_flow(start_row, end_row, spreadsheet, sender_info):
                 raise RuntimeError(f'🔴 #{row}: got failed multi times')
             try:
                 output_status = {}
-                output_status["system_status"] = system_status
+                output_status["system_status"] = 'Failed'
+                output_status["system_error"] = error_message
                 temp_status = output_google_spreadsheet(sheet, column_map, row, output_status)
                 if temp_status == True:
                     logger.info(f'🟢 Successfully to output google spreadsheet')
@@ -63,6 +63,8 @@ def run_flow(start_row, end_row, spreadsheet, sender_info):
                 raise RuntimeError(f'🔴 failed to output google spreadsheet: {e}') from e
             row += 1
 
+        system_status = None
+        error_message = None
         logger.info(f"==starting for #{row}===")
         logger.info(f"（error_count: {error_count}）")
 
@@ -97,16 +99,24 @@ def run_flow(start_row, end_row, spreadsheet, sender_info):
             logger.error(f'🔴 {error_message}')
             continue
 
-        try:
-            output_status = {}
-            output_status["system_status"] = system_status
-            temp_status = output_google_spreadsheet(sheet, column_map, row, output_status)
-            if temp_status == True:
-                logger.info(f'🟢 Successfully to output google spreadsheet')
-            else:
-                raise RuntimeError(f'🔴 failed to output google spreadsheet')
-        except Exception as e:
-            raise RuntimeError(f'🔴 failed to output google spreadsheet: {e}') from e
+        if system_status == True:
+            logger.info(f'🟢 Successfully to send form')
+
+            try:
+                output_status = {}
+                output_status["system_status"] = 'Success'
+                temp_status = output_google_spreadsheet(sheet, column_map, row, output_status)
+                if temp_status == True:
+                    logger.info(f'🟢 Successfully to output google spreadsheet')
+                else:
+                    raise RuntimeError(f'🔴 failed to output google spreadsheet')
+            except Exception as e:
+                raise RuntimeError(f'🔴 failed to output google spreadsheet: {e}') from e
+        else:
+            error_count += 1
+            error_message = f'unknown error'
+            logger.error(f'🔴 {error_message}')
+            continue
 
         logger.info(f"==ending for #{row}===")
         error_count = 0
