@@ -6,9 +6,10 @@ from app.playwrite_setting import open_browser
 from playwright.sync_api import sync_playwright
 from utilities.logger import logger
 
+
 #form_elements: 
 def form_elements(page):
-    elements = page.evaluate("""
+  elements = page.evaluate("""
 () => {
   const fields = [];
   const targets = document.querySelectorAll('input, select, textarea, button, a[role="button"], div[role="button"]');
@@ -162,7 +163,7 @@ def form_elements(page):
 }
     """)
 
-    return elements
+  return elements
 
 def form_elements_v2(page):
     elements = page.evaluate("""
@@ -318,79 +319,142 @@ def get_form_elements(url, p):
     logger.info(f'>🏠 Return to logic.py')
     return elements, browser, page
 
+
 #confirm_elements: 
 def confirm_elements(page):
-    elements = page.evaluate("""
+  elements = page.evaluate("""
 () => {
-    const fields = [];
+  const fields = [];
 
-    // ボタンとしての役割を判定する関数
-    const isButtonLike = (el) => {
-        const tag = el.tagName.toLowerCase();
-        const type = el.getAttribute("type")?.toLowerCase() || "";
-        const role = el.getAttribute("role")?.toLowerCase() || "";
+  const targets = Array.from(document.querySelectorAll("*")).filter(el => {
+    const style = window.getComputedStyle(el);
+    const visible = !!(
+      el.offsetParent !== null &&
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      style.opacity !== "0"
+    );
 
-        return (
-            tag === "button" ||
-            (tag === "input" && ["submit", "button"].includes(type)) ||
-            (["a", "div", "span"].includes(tag) && role === "button") ||
-            el.hasAttribute("onclick")
-        );
+    const tag = el.tagName.toLowerCase();
+    const type = el.getAttribute("type")?.toLowerCase() || "";
+    const role = el.getAttribute("role")?.toLowerCase() || "";
+
+    const isButtonLike =
+      tag === "button" ||
+      (tag === "input" && ["submit", "button"].includes(type)) ||
+      (["a", "div", "span"].includes(tag) && role === "button") ||
+      el.hasAttribute("onclick");
+
+    return visible && isButtonLike;
+  });
+
+  targets.forEach((el, index) => {
+    const tag = el.tagName.toLowerCase();
+    const type = el.getAttribute("type")?.toLowerCase() || "";
+    const role = el.getAttribute("role") || "";
+    const value = el.getAttribute("value")?.trim() || "";
+
+    // text_candidates
+    const text_candidates = {
+      inner_text: el.innerText?.trim() || "",
+      value: value,
+      placeholder: el.getAttribute("placeholder")?.trim() || "",
+      aria_label: el.getAttribute("aria-label")?.trim() || "",
+      title: el.getAttribute("title")?.trim() || "",
+      alt: el.getAttribute("alt")?.trim() || ""
     };
 
-    const targets = Array.from(document.querySelectorAll("*")).filter(el => {
-        const visible = !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
-        return visible && isButtonLike(el);
+    // attributes
+    const attrs = {};
+    for (const attr of el.attributes) {
+      attrs[attr.name] = attr.value;
+    }
+
+    // text_structure
+    let hasDirectText = false;
+    let hasDescendantText = false;
+    const descendantsWithText = new Set();
+    let textSource = null;
+
+    Array.from(el.childNodes).forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0) {
+        hasDirectText = true;
+      }
     });
 
-    targets.forEach((el, index) => {
-        const tag = el.tagName.toLowerCase();
-        const type = el.getAttribute("type")?.toLowerCase() || "";
-        const value = el.getAttribute("value") || "";
-        const text = el.innerText?.trim() || value;
-
-        const attrs = {};
-        for (const attr of el.attributes) {
-            attrs[attr.name] = attr.value;
+    el.querySelectorAll("*").forEach(descendant => {
+      const txt = descendant.textContent?.trim();
+      if (txt && txt.length > 0) {
+        hasDescendantText = true;
+        descendantsWithText.add(descendant.tagName.toLowerCase());
+        if (!textSource) {
+          textSource = descendant.tagName.toLowerCase();
         }
-
-        const nearby = [];
-
-        const id = el.getAttribute("id");
-        if (id) {
-            const label = document.querySelector(`label[for="${id}"]`);
-            if (label) nearby.push(label.innerText.trim());
-        }
-
-        let parent = el.parentElement;
-        let depth = 0;
-        while (parent && depth < 2) {
-            const txt = parent.innerText.trim();
-            if (txt.length > 0) nearby.push(txt);
-            parent = parent.parentElement;
-            depth++;
-        }
-
-        const prev = el.previousElementSibling;
-        if (prev && prev.innerText) {
-            nearby.push(prev.innerText.trim());
-        }
-
-        fields.push({
-            index,
-            tag,
-            type,
-            text,
-            attributes: attrs,
-            nearby_text: [...new Set(nearby)].filter(t => t)
-        });
+      }
     });
 
-    return fields;
+    const text_structure = {
+      has_direct_text: hasDirectText,
+      has_descendant_text: hasDescendantText,
+      descendants_with_text: Array.from(descendantsWithText),
+      ...(textSource ? { text_source: textSource } : {})
+    };
+
+    // nearby_text
+    const nearby = [];
+
+    const id = el.getAttribute("id");
+    if (id) {
+      const forLabel = document.querySelector(`label[for="${id}"]`);
+      if (forLabel) {
+        nearby.push({ source: "label", text: forLabel.innerText.trim() });
+      }
+    }
+
+    let wrapped_by_label = false;
+    let current = el;
+    while (current.parentElement) {
+      current = current.parentElement;
+      if (current.tagName.toLowerCase() === "label") {
+        nearby.push({ source: "label", text: current.innerText.trim() });
+        wrapped_by_label = true;
+        break;
+      }
+    }
+
+    let parent = el.parentElement;
+    let depth = 0;
+    while (parent && depth < 2) {
+      const txt = parent.innerText?.trim();
+      if (txt) {
+        nearby.push({ source: "parent", text: txt });
+      }
+      parent = parent.parentElement;
+      depth++;
+    }
+
+    const prev = el.previousElementSibling;
+    if (prev && prev.innerText) {
+      nearby.push({ source: "sibling", text: prev.innerText.trim() });
+    }
+
+    // 最終出力
+    fields.push({
+      index,
+      tag,
+      type,
+      attributes: attrs,
+      text_candidates,
+      text_structure,
+      nearby_text: nearby,
+      ...(wrapped_by_label ? { wrapped_by_label: true } : {})
+    });
+  });
+
+  return fields;
 }
 """)
-
-    return elements
+  return elements
 
 def get_confirm_elements(page):
     try:
@@ -407,10 +471,10 @@ def get_confirm_elements(page):
 
 
 if __name__ == "__main__":
-    with sync_playwright() as p:
-        browser, page = open_browser("https://www.pantry-lucky.jp/contact/", p)
-        input()
-        elements = get_confirm_elements(page)
-        print(elements)
-        input()
+  with sync_playwright() as p:
+    browser, page = open_browser("https://www.pantry-lucky.jp/contact/", p)
+    input()
+    elements = get_confirm_elements(page)
+    print(elements)
+    input()
 
