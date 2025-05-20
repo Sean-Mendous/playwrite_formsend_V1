@@ -19,7 +19,7 @@ prompt_paths = {
     "progress": "prompt/progress.md",
 }
 
-def run_flow(start_row, end_row, spreadsheet, sender_info):
+def run_flow(start_row, end_row, spreadsheet, sender_info, num_of_error=10):
     sheet_id = spreadsheet["sheet_id"]
     sheet = spreadsheet["sheet"]
     column_map = spreadsheet["column_map"]
@@ -48,7 +48,7 @@ def run_flow(start_row, end_row, spreadsheet, sender_info):
 
     for data in multi_data:
         if error_count:
-            if error_count > 100:
+            if error_count > num_of_error:
                 raise RuntimeError(f'🔴 #{row}: got failed multi times')
             try:
                 output_status = {}
@@ -127,7 +127,6 @@ def basic_flow(
         data_url, #from spreadsheet
         data_sentence, 
         sender_info, #from client
-        prompt_paths=prompt_paths,
     ):
         
         url = data_url
@@ -147,7 +146,7 @@ def basic_flow(
             
             logger.info(f"🔄 2. Ask for fields")
             try:
-                fields = ask_for_feilds(elements, sender_info, sentence, prompt_paths)
+                fields = ask_for_feilds(elements, sender_info, sentence)
                 if not fields:
                     raise RuntimeError(f'2. ask for fields')
                 logger.info(f'🟢 Successfully got fields\n')
@@ -171,7 +170,7 @@ def basic_flow(
                 try:        
                     status = None
                     message = None
-                    status, message = ask_for_progress(page, prompt_paths)
+                    status, message = ask_for_progress(page)
                     if status == True:
                         logger.info(f'🟢 Successfully checked the progress : True ({i}) : {message}\n')
                     elif status == False:
@@ -197,7 +196,7 @@ def basic_flow(
                 
                 logger.info(f"🔄 4.3 Ask for confirmation ({i})")
                 try:
-                    feild = ask_for_confirmation(elements, prompt_paths)
+                    feild = ask_for_confirmation(elements)
                     if not feild:
                         raise RuntimeError(f'4.3 ask for confirmation ({i})')
                     logger.info(f'🟢 Successfully asked for confirmation ({i})\n')
@@ -259,7 +258,7 @@ https://samurai-style.tokyo/
  """
 
     basic_flow(
-        data_url = input("Enter the URL: "),
+        data_url = 'https://samurai-style.tokyo/#contact',
         data_sentence = sentence,
         sender_info = sender_info,
     )

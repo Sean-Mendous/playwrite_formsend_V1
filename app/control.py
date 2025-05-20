@@ -20,16 +20,21 @@ def split_fields(fields):
 def control_browser(page, fields, time_sleep=2, form_check=True):
     page.set_default_timeout(10000)
 
-    fill_list, click_list, send_list = split_fields(fields)
-    logger.info(f'\nfill_list: {len(fill_list)}\nclick_list: {len(click_list)}\nsend_list: {len(send_list)}')
-
     if form_check:
+        fill_list, click_list, send_list = split_fields(fields)
+        logger.info(f'\nfill_list: {len(fill_list)}\nclick_list: {len(click_list)}\nsend_list: {len(send_list)}')
+
         if not fill_list:
             raise RuntimeError(f'No fill to control')
         # if not click_list:
         #     raise RuntimeError(f'No click to control')
         if not send_list:
             raise RuntimeError(f'No send to control')
+    else:
+        click_list = fields
+        fill_list = []
+        send_list = []
+        logger.info(f'click_list: {len(click_list)}')
 
     try:
         fill_count = for_fill(page, fill_list, time_sleep)
