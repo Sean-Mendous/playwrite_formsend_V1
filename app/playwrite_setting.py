@@ -16,7 +16,7 @@ def open_browser(url, p):
     return browser, page
 
 def get_encoded_image(page):
-    image_bytes = page.screenshot(timeout=5000)
+    image_bytes = page.screenshot(timeout=5000, full_page=True)
     encoded_image = base64.b64encode(image_bytes).decode("utf-8")
     return encoded_image
     

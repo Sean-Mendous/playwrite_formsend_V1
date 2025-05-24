@@ -185,7 +185,7 @@ def basic_flow(
                 if i == 3:
                     break
                 
-                logger.info(f"🔄 4.2 Get confirm elements ({i})")
+                logger.info(f"🔄 4.2 Get confirm elements ({i})") #どんな要素を取得するか？
                 try:
                     elements = get_confirm_elements(page)
                     if not elements:
@@ -194,7 +194,7 @@ def basic_flow(
                 except Exception as e:
                     raise RuntimeError(f'4.2 get confirm elements ({i}): {e}') from e
                 
-                logger.info(f"🔄 4.3 Ask for confirmation ({i})")
+                logger.info(f"🔄 4.3 Ask for confirmation ({i})") #要素選択をより柔軟に、しかし必要なものだけとる
                 try:
                     feild = ask_for_confirmation(elements)
                     if not feild:

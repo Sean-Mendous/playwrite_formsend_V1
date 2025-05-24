@@ -61,7 +61,7 @@ logger.info("0700: 🍺🍺 main execution completed 🍺🍺")
 """
 python main.py --client client_test --start_row 9 --end_row 13
 
-python main.py --client client_samurai --start_row 309 --end_row 400
+python main.py --client client_samurai --start_row 327 --end_row 400
 """
 
 
